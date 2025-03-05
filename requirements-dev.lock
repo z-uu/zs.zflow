@@ -44,5 +44,6 @@ tzlocal==5.3.1
     # via dateparser
 watchdog==6.0.0
     # via zs-zflow
+zs-zuto-testmod @ git+https://github.com/z-uu/zs.zuto.testmod.git@1eb42217ccc4d6584f1a7e6deeb375cbd0d235d3
 zuu==7.3.0
     # via zs-zflow

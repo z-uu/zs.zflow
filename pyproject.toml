@@ -1,6 +1,6 @@
 [project]
 name = "zs.zflow"
-version = "0.1.0"
+version = "0.2.0"
 description = "single task workflow system"
 authors = [
     { name = "ZackaryW", email = "gitzackw@gmail.com" }
@@ -28,7 +28,9 @@ build-backend = "hatchling.build"
 
 [tool.rye]
 managed = true
-dev-dependencies = []
+dev-dependencies = [
+    "zs-zuto-testmod @ git+https://github.com/z-uu/zs.zuto.testmod.git",
+]
 
 [tool.hatch.metadata]
 allow-direct-references = true
