@@ -36,6 +36,8 @@ regex==2024.11.6
     # via dateparser
 six==1.17.0
     # via python-dateutil
+toml==0.10.2
+    # via zs-zflow
 tzdata==2025.1
     # via tzlocal
 tzlocal==5.3.1

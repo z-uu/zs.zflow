@@ -32,6 +32,8 @@ class ZFlow:
         self.observer = Observer()
         self.observer.schedule(FileHandler(self), path=folder, recursive=True)
 
+        self.disabled_tasks = []
+        self._load_state()
 
     def _setup_funcmaps(self):
         
@@ -133,11 +135,14 @@ class ZFlow:
         
         while True:
             if not self.currentTaskThread and (ttuple := self.queue.peek()) is not None:
-                # check if task can be executed now
                 task = ttuple[2]
                 if task.canRun:
                     self.queue.dequeue()
                     
+                    if task.name in self.disabled_tasks:
+                        print(f"Task {task.name} is disabled, skipping")
+                        continue
+
                     func = self._execute_thread
                     
                     
@@ -179,6 +184,20 @@ class ZFlow:
             ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(threading.get_ident()), ctypes.py_object(SystemExit))
             print("Observer stopped")
                 
+    def _load_state(self):
+        state_path = os.path.join(self.path, 'state.toml')
+        if not os.path.exists(state_path):
+            return
+        try:
+            import toml
+            with open(state_path, 'r') as f:
+                state = toml.load(f)
+            self.disabled_tasks = state.get('disable', [])
+        except ImportError:
+            logging.error("toml module not installed, cannot load state.toml")
+        except Exception as e:
+            logging.error(f"Error loading state.toml: {e}")
+
 class FileHandler(FileSystemEventHandler):
     def __init__(self, scheduler: ZFlow):
         super().__init__()
@@ -191,10 +210,12 @@ class FileHandler(FileSystemEventHandler):
         if event.is_directory or not event.src_path.startswith(self.scheduler.path):
             return
 
-        if not event.src_path.endswith(".yml") and not event.src_path.endswith(".yaml"):
-            return
-
-        return self._handle_yml(event.src_path)
+        filename = os.path.basename(event.src_path)
+        if filename.endswith(('.yml', '.yaml')):
+            self._handle_yml(event.src_path)
+        elif filename == 'state.toml':
+            print("Detected state.toml change")
+            self.scheduler._load_state()
 
     def _handle_yml(self, path : str):
         print(f"Detected change in {path}")
