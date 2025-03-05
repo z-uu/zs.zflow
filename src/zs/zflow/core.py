@@ -2,7 +2,7 @@ import logging
 import os
 import threading
 from watchdog.observers import Observer
-from watchdog.events import DirCreatedEvent, FileCreatedEvent, FileSystemEventHandler
+from watchdog.events import FileSystemEventHandler
 from zs.zflow.builtin import BUILTIN_METHODS
 from zs.zflow.utils import gather_zuto_mods, import_file
 from ._internal import ZFlowTask, ZFlowQueue, STEPTYPE
