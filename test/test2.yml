@@ -1,0 +1,15 @@
+name: Test Job 2
+when:
+  minAt: in 1 seconds
+lifetime: 3
+cleanup : true
+steps:
+  - echo "Hello2, World!"
+  - echo "Hello2, World!"
+  - echo "Hello2, World!"
+  - echo "Hello2, World!"
+  - notepad.exe
+  - sleep: 4
+  - echo "Hello2, World!"
+  - echo "Hello2, World!"
+  - echo "Hello2, World!" 
