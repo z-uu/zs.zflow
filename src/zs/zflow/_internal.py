@@ -32,6 +32,9 @@ class ZFlowTask:
     steps : typing.List[STEPTYPE] = field(default_factory=list)
     onError : typing.List[STEPTYPE] = field(default_factory=list)
 
+    filename : str = None
+    modifiedBit : float = None
+
     _minAt : datetime.datetime = None
     _maxAt : datetime.datetime = None
 
@@ -96,8 +99,12 @@ class ZFlowQueue:
         with open(file, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f)
 
+        # Remove existing entries with same filename before adding updated version
+        filename = os.path.basename(file)
+        self._queue = [item for item in self._queue if item[2].filename != filename or item[2].modifiedBit < os.path.getmtime(file)]
+
         try:
-            obj = ZFlowTask(**data)
+            obj = ZFlowTask(**data, filename=filename, modifiedBit=os.path.getmtime(file))
             self.enqueue(obj)
         except Expired as e:
             logging.error(f"{file} is expired: {e}")

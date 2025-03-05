@@ -139,7 +139,7 @@ class ZFlow:
                 if task.canRun:
                     self.queue.dequeue()
                     
-                    if task.name in self.disabled_tasks:
+                    if task.name in self.disabled_tasks or task.filename in self.disabled_tasks:
                         print(f"Task {task.name} is disabled, skipping")
                         continue
 
@@ -192,7 +192,7 @@ class ZFlow:
             import toml
             with open(state_path, 'r') as f:
                 state = toml.load(f)
-            self.disabled_tasks = state.get('disable', [])
+            self.disabled_tasks = state.get('disabled', [])
         except ImportError:
             logging.error("toml module not installed, cannot load state.toml")
         except Exception as e:
@@ -202,20 +202,42 @@ class FileHandler(FileSystemEventHandler):
     def __init__(self, scheduler: ZFlow):
         super().__init__()
         self.scheduler = scheduler
+        self._last_event_time = 0
+        self._pending_events = {}
 
-    def on_created(self, event: DirCreatedEvent | FileCreatedEvent) -> None:
-        return self.on_modified(event)
+    def _debounced_processing(self, path: str, processor: callable):
+        def wrapper():
+            current_time = time.monotonic()
+            if current_time - self._last_event_time >= 2:
+                self._last_event_time = current_time
+                processor()
+                # Clear pending events after successful processing
+                self._pending_events.pop(path, None)
+            else:
+                # Reschedule check if we have newer events
+                if path in self._pending_events:
+                    threading.Timer(2, self._debounced_processing(path, processor)).start()
+
+        # Cancel any existing timer for this path
+        if path in self._pending_events:
+            self._pending_events.pop(path).cancel()
+        
+        # Store the timer so we can cancel it if needed
+        timer = threading.Timer(2, wrapper)
+        self._pending_events[path] = timer
+        timer.start()
 
     def on_modified(self, event):
         if event.is_directory or not event.src_path.startswith(self.scheduler.path):
             return
 
         filename = os.path.basename(event.src_path)
+        path = event.src_path
+
         if filename.endswith(('.yml', '.yaml')):
-            self._handle_yml(event.src_path)
+            self._debounced_processing(path, lambda: self._handle_yml(path))
         elif filename == 'state.toml':
-            print("Detected state.toml change")
-            self.scheduler._load_state()
+            self._debounced_processing(path, lambda: self.scheduler._load_state())
 
     def _handle_yml(self, path : str):
         print(f"Detected change in {path}")
